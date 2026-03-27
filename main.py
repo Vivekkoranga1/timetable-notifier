@@ -15,7 +15,7 @@ def run():
     auth_token = os.getenv("TWILIO_AUTH")
     client = Client(account_sid, auth_token)
 
-    with open("timetable.json") as time_table:
+    with open("timetable.json",encoding="utf-16") as time_table:
         data = json.load(time_table)
 
     weekday = brain.weekday
@@ -49,4 +49,4 @@ def run():
 
 
 if __name__ == "__main__":
-    app.run()
+    app.run(host="0.0.0.0", port=int(os.environ.get("PORT", 5000)))
