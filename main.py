@@ -1,48 +1,52 @@
+from flask import Flask
 import json
 import brain
 from twilio.rest import Client
-from dotenv import load_dotenv
 import os
-
+from dotenv import load_dotenv
 
 load_dotenv()
-account_sid = os.getenv("account_sid") 
-auth_token =  os.getenv("auth_token")
 
-client = Client(account_sid, auth_token)
+app = Flask(__name__)
+
+@app.route("/")
+def run():
+    account_sid = os.getenv("TWILIO_SID")
+    auth_token = os.getenv("TWILIO_AUTH")
+    client = Client(account_sid, auth_token)
+
+    with open("timetable.json") as time_table:
+        data = json.load(time_table)
+
+    weekday = brain.weekday
+    current_time = brain.current_time
+
+    total_classes = len(data[weekday])
+
+    for i in range(total_classes):
+        start_time = data[weekday][i]['start']
+
+        start = int(start_time[:2]) * 60 + int(start_time[3:])
+        current = int(current_time[:2]) * 60 + int(current_time[3:])
+        diff = start - current
+
+        if 0 < diff <= 10:
+            subject = data[weekday][i]['subject']
+            room = data[weekday][i]['room']
+            faculty = data[weekday][i]['faculty']
+
+            message = f"Hey Vivek! It's {weekday}. Your {subject} class with {faculty} in room {room} starts in {diff} minutes."
+
+            client.messages.create(
+                body=message,
+                from_="+13606547194",
+                to="+917456996335"
+            )
+
+            return "Message Sent"
+
+    return "No class in next 10 minutes"
 
 
-with open("timetable.json", encoding="utf-16") as time_table:
-    data = json.load(time_table)
-
-
-weekday = brain.weekday
-toatal_classes =len(data[weekday])
-
-
-current_time = brain.current_time
-
-for i in range(toatal_classes):
-    start_time = data[weekday][i]['start']
-    
-
-    
-    
-    if start_time[:2] == current_time[:2]:
-        
-        class_start_time = int(start_time[3:]) - int(current_time[3:])
-        if class_start_time < 10 and class_start_time > 0:
-            
-           subject = data[weekday][i]['subject']
-           room =  data[weekday][i]['room']
-           faculty = data[weekday][i]['faculty']
-        
-        mess_ = f"Hello Vivek, today is {weekday}. Your class for {subject}, conducted by {faculty} in room {room}, will begin in {class_start_time} minutes."
-        message = client.messages.create(
-                    body = f"{mess_}",
-                    from_="+13606547194",
-                    to="+917456996335")
-        
-        
-   
-            
+if __name__ == "__main__":
+    app.run()
